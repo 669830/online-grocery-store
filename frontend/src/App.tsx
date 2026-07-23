@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import type { Product } from "./types";
+import { getProducts } from "./api/products";
+import ProductCard from "./components/ProductCard";
+import "./App.css";
 
 function App() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -7,43 +10,40 @@ function App() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("http://localhost:8080/api/products")
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error("Kunne ikke hente produkter");
-        }
-        return res.json();
-      })
-      .then((data: Product[]) => {
+    async function loadProducts() {
+      try {
+        const data = await getProducts();
         setProducts(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Ukjent feil");
+      } finally {
         setLoading(false);
-      })
-      .catch((err: Error) => {
-        setError(err.message);
-        setLoading(false);
-      });
+      }
+    }
+
+    loadProducts();
   }, []);
 
-  if (loading) {
-    return <p>Laster produkter...</p>;
-  }
-
-  if (error) {
-    return <p>Feil: {error}</p>;
-  }
-
   return (
-    <div>
-      <h1>Produkter</h1>
-      <ul>
-        {products.map((product) => (
-          <li key={product.id}>
-            <strong>{product.name}</strong> – {product.price} kr
-            <br />
-            På lager: {product.stockQuantity}
-          </li>
-        ))}
-      </ul>
+    <div className="app">
+      <header className="app-header">
+        <h1>Asiatisk Matbutikk</h1>
+        <p>Ris, nudler, sauser og mer</p>
+      </header>
+
+      <main>
+        {loading && <p className="status">Laster produkter...</p>}
+        {error && <p className="status error">{error}</p>}
+        {!loading && !error && products.length === 0 && (
+          <p className="status">Ingen produkter tilgjengelig.</p>
+        )}
+
+        <div className="product-grid">
+          {products.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
+      </main>
     </div>
   );
 }
